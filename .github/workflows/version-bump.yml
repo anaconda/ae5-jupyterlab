@@ -1,0 +1,35 @@
+name: JupyterLab version bump
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+concurrency:
+  group: jupyterlab-version-bump
+  cancel-in-progress: false
+# GITHUB_TOKEN stays read-only. Writes use secrets.GITHUB_PLATFORM_TOKEN
+# (checkout token + GH_TOKEN), so tightening this block does not reduce access.
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+    # PAT (not GITHUB_TOKEN) so the bump PR triggers full pull_request CI.
+    # GITHUB_TOKEN-created pushes/PRs do not run other workflows.
+    - name: Retrieve the source code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: master
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_PLATFORM_TOKEN }}
+    - name: Install pixi
+      run: |
+        curl -fsSL https://pixi.sh/install.sh | bash
+        echo "$HOME/.pixi/bin" >> "$GITHUB_PATH"
+    - name: Update pixi.lock
+      run: bash ./version-bump.sh
+    - name: Open, update, or close bump PR
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_PLATFORM_TOKEN }}
+      run: bash ./submit-pr.sh

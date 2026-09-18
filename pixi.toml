@@ -1,0 +1,40 @@
+[workspace]
+name = "ae-editor-lab-launch"
+channels = [
+    "https://repo.anaconda.com/pkgs/main",
+    "https://conda.anaconda.org/ae-dev/label/dev",
+    "https://conda.anaconda.org/ae-dev",
+    "https://conda.anaconda.org/pyviz",
+    "conda-forge",
+]
+platforms = ["linux-64", "linux-aarch64"]
+
+[dependencies]
+python = "*"
+anaconda-project-launcher = { version = ">=5.9.0", channel = "ae-dev" }
+# Floor at 0.13.2: it carries the export-pixi shell-injection fix (AENT-8833,
+# anaconda-project#436 — _shell_quote on notebook/bokeh task paths). This is
+# the env the JupyterLab server (and its Convert-to-Pixi export path) actually
+# runs in, so this pin — not editor/base's — is the one that matters for
+# AENT-8833's done-criterion.
+anaconda-project = { version = ">=0.13.2", channel = "ae-dev" }
+ob-pixi = { version = ">=0.0.8", channel = "ae-dev" }
+entrypoints = "*"
+jupyter-server-proxy = "*"
+jupyterlab = ">=4.3"
+nbconvert = "*"
+notebook = "*"
+tornado = "*"
+widgetsnbextension = "*"
+jupyter_bokeh = "*"
+jupyterlab-geojson = "*"
+# CVE-2026-28684 (MED); fix (1.2.2) isn't on pkgs/main yet, only
+# conda-forge. Pure Python, no ABI concern -- ok'd by mcg1969.
+python-dotenv = { version = ">=1.2.2", channel = "conda-forge" }
+panel = "*"
+param = "*"
+pyviz_comms = "*"
+ipympl = "*"
+
+[environments]
+lab-launch = { features = [], no-default-feature = false }

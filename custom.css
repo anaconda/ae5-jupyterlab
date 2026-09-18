@@ -1,0 +1,4 @@
+/* Hides the 'Clusters' tab which is not useful anyway */
+a.clusters_tab_link { 
+    display: none !important; 
+}
