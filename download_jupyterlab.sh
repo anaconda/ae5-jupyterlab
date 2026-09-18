@@ -27,7 +27,7 @@ cache=downloads/.pixi-pack-cache
 mkdir -p "$cache"
 
 for platform in linux-64 linux-aarch64; do
-    out="downloads/jupyterlab-${platform}.tar"
+    out="downloads/jupyter-${platform}.tar"
     echo "Packing lab-launch for ${platform} -> ${out}"
     pixi-pack \
         --environment lab-launch \
@@ -38,4 +38,4 @@ for platform in linux-64 linux-aarch64; do
 done
 
 echo "Packed:"
-ls -l downloads/jupyterlab-linux-64.tar downloads/jupyterlab-linux-aarch64.tar
+ls -l downloads/jupyter-linux-64.tar downloads/jupyter-linux-aarch64.tar

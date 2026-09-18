@@ -21,16 +21,16 @@ case $(uname -m) in
 esac
 
 PACK=
-for candidate in "$PWD/downloads/jupyterlab-${PLAT}.tar" \
-                 "$SCRIPTDIR/downloads/jupyterlab-${PLAT}.tar"; do
+for candidate in "$PWD/downloads/jupyter-${PLAT}.tar" \
+                 "$SCRIPTDIR/downloads/jupyter-${PLAT}.tar"; do
     if [ -f "$candidate" ]; then
         PACK=$candidate
         break
     fi
 done
 if [ -z "$PACK" ]; then
-    echo "ERROR: missing downloads/jupyterlab-${PLAT}.tar"
-    echo "(Have you unpacked jupyter-blobs.tar.bz2, or run download_jupyterlab.sh?)"
+    echo "ERROR: missing downloads/jupyter-${PLAT}.tar"
+    echo "(Have you downloaded jupyter-${PLAT}.tar, or run download_jupyterlab.sh?)"
     exit 1
 fi
 
@@ -114,7 +114,8 @@ for dst in "$PREFIX"/lib/*/site-packages/*/static/custom/; do
 done
 
 need_rebuild=no
-if jupyter labextension list 2>&1 | grep -q '^Build recommended'; then
+labext_list=$(jupyter labextension list 2>&1 || true)
+if printf '%s\n' "$labext_list" | grep -q '^Build recommended'; then
     echo "Rebuild required due to extensions"
     need_rebuild=yes
 fi
@@ -127,17 +128,19 @@ if [ "$need_rebuild" = yes ]; then
     fi
     export PATH=/tmp/nodejs/bin:$PATH
     cmd jupyter lab build
+    labext_list=$(jupyter labextension list 2>&1 || true)
 fi
 
 echo "- Sanity check"
-cmd jupyter lab extension list
-cmd jupyter server extension list
+printf '%s\n' "$labext_list" | sed 's@^@| @'
+server_list=$(jupyter server extension list 2>&1 || true)
+printf '%s\n' "$server_list" | sed 's@^@| @'
 error=no
-if ! jupyter lab extension list 2>&1 | grep -q 'anaconda.project.launcher.*OK'; then
+if ! printf '%s\n' "$labext_list" | grep -q 'anaconda.project.launcher.*OK'; then
     error=yes
     echo "ERROR: anaconda-project-launcher front end is not enabled"
 fi
-if ! jupyter server extension list 2>&1 | grep 'anaconda.project.launcher.*OK'; then
+if ! printf '%s\n' "$server_list" | grep -q 'anaconda.project.launcher.*OK'; then
     error=yes
     echo "ERROR: anaconda-project-launcher back end is not enabled"
 fi

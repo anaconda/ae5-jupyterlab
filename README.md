@@ -14,62 +14,48 @@ Use this when you want a newer JupyterLab, a patched
 baked into the editor image. Installation is reversible: remove
 `/tools/jupyter` and sessions fall back to the image.
 
-These instructions apply to AE 5.5.1 or later. No existing sessions or
-deployments are affected. We recommend a maintenance window only so
-that users do not create *new* sessions while `/tools` is writable.
+No existing sessions or deployments are affected. We recommend a
+maintenance window only so that users do not create *new* sessions
+while `/tools` is writable.
 
 The latest files are always at:
 
 - Installer project: [jupyter-installer.tar.bz2](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-installer.tar.bz2)
-- Packed environments (linux-64 and linux-aarch64): [jupyter-blobs.tar.bz2](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-blobs.tar.bz2)
+- Packed environment (linux-64): [jupyter-linux-64.tar](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-linux-64.tar)
+- Packed environment (linux-aarch64): [jupyter-linux-aarch64.tar](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-linux-aarch64.tar)
 
 Untagged URLs track `master`. Dated and `-latest` / `-dev` suffixes
 follow the same convention as the VSCode and RStudio tool repos.
 
 ## Installation
 
-1. _Set the tool volume to read-write._ **(5.5.1 only)**
-2. _Install JupyterLab onto `/tools/jupyter`._
-3. _Verify the installation._
-4. _Set the tool volume to read-only._ **(5.5.1 only)**
+Log in as the storage manager (typically `anaconda-enterprise`), who
+has write access to `/tools`.
 
-***5.5.2+:*** skip steps 1 and 4. Log in as the storage manager
-(typically `anaconda-enterprise`), who already has write access to
-`/tools`.
+### Step 1. Install JupyterLab onto `/tools/jupyter`
 
-### Step 1. Set the tool volume to read-write (5.5.1)
-
-***5.5.2+:*** skip this step.
-
-1. Edit the `anaconda-platform.yml` ConfigMap.
-2. Find the `/tools:` volume specification.
-3. Change `readOnly: true` to `readOnly: false`.
-4. Save, then restart the workspace pod:
-   ```
-   kubectl get pods | grep ap-workspace | cut -d ' ' -f 1 | xargs kubectl delete pod
-   ```
-5. Wait for the new workspace pod to become Ready.
-
-### Step 2. Install JupyterLab onto `/tools/jupyter`
-
-1. ***5.5.2+:*** log into AE5 as the storage manager user.
-2. Start a session on any project.
-3. Bring the installer and the blobs into the project. If the cluster
-   can reach the internet:
+1. Start a session on any project.
+2. Bring the installer and the pack for this machine's architecture
+   into the project. If the cluster can reach the internet:
 
    ```
    curl -OL https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-installer.tar.bz2
-   curl -OL https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-blobs.tar.bz2
+   case $(uname -m) in
+     arm64|aarch64) plat=linux-aarch64 ;;
+     *)             plat=linux-64 ;;
+   esac
+   curl -OL "https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-${plat}.tar"
    ```
 
    Otherwise download them outside the cluster and upload them into
    the session.
 
-4. Unpack both archives and install:
+3. Unpack the installer, place the pack in `downloads/`, and install:
 
    ```
    tar xfj jupyter-installer.tar.bz2
-   tar xfj jupyter-blobs.tar.bz2 -C Jupyter_Installer
+   mkdir -p Jupyter_Installer/downloads
+   mv jupyter-linux-*.tar Jupyter_Installer/downloads/
    cd Jupyter_Installer
    PREFIX=/tools/jupyter bash install_jupyterlab.sh
    ```
@@ -80,9 +66,9 @@ follow the same convention as the VSCode and RStudio tool repos.
    you need a different location; the parent directory must exist and
    `$PREFIX` must be empty.
 
-5. You may remove the tarballs and shut down this session.
+4. You may remove the tarballs and shut down this session.
 
-### Step 3. Verify the installation
+### Step 2. Verify the installation
 
 Start a new session and, from a terminal:
 
@@ -98,13 +84,6 @@ Opening a session with the JupyterLab editor should now serve this
 install. AE5 discovers tools by the `start_*.sh` filename:
 `start_jupyterlab.sh` and `start_notebook.sh` are the same script;
 `TOOL_PACKAGE` selects `jupyter-lab` vs `jupyter-notebook`.
-
-### Step 4. Set the tool volume to read-only (5.5.1)
-
-***5.5.2+:*** skip this step.
-
-Reverse Step 1 (`readOnly: false` → `readOnly: true`) and restart the
-workspace pod again.
 
 ## Installer project (online / internal)
 

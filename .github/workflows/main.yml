@@ -40,16 +40,16 @@ jobs:
         AE_GCR_KEY: ${{ secrets.AE_GCR_KEY }}
       run: bash ./ci_test.sh
     - name: Upload screenshot artifact
-      if: always() && hashFiles('test_screenshot.png') != ''
+      if: always() && hashFiles('test_screenshot*.png') != ''
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
       with:
-        name: jupyterlab-bringup-screenshot
-        path: test_screenshot.png
+        name: jupyterlab-bringup-screenshots
+        path: test_screenshot*.png
     - name: Post screenshot comment
       if: always() && github.event_name == 'pull_request'
       env:
         GH_TOKEN: ${{ github.token }}
-        UPLOAD_TOKEN: ${{ secrets.GITHUB_PLATFORM_TOKEN }}
+        UPLOAD_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO_ID: ${{ github.repository_id }}
         IMAGE_VER: ${{ steps.bringup.outputs.image_ver }}
@@ -57,21 +57,29 @@ jobs:
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         set -euo pipefail
+        shopt -s nullglob
+        names=(test_screenshot*.png)
+        screenshots=()
+        if [ ${#names[@]} -gt 0 ]; then
+          readarray -t screenshots < <(printf '%s\n' "${names[@]}" | LC_ALL=C sort)
+        fi
         img_md=""
-        if [ -f test_screenshot.png ]; then
+        upload_failed=0
+        for f in "${screenshots[@]}"; do
           upload_json=$(curl -fsS -X POST \
             -H "Authorization: Bearer ${UPLOAD_TOKEN}" \
             -H "Accept: application/json" \
-            --data-binary @test_screenshot.png \
-            "https://uploads.github.com/user-attachments/assets?name=test_screenshot.png&content_type=image/png&repository_id=${REPO_ID}" \
+            --data-binary @"$f" \
+            "https://uploads.github.com/user-attachments/assets?name=$(basename "$f")&content_type=image/png&repository_id=${REPO_ID}" \
             || true)
           asset_url=$(printf '%s' "$upload_json" | jq -r '.href // .url // empty' 2>/dev/null || true)
           if [ -n "$asset_url" ]; then
-            img_md="![JupyterLab bringup](${asset_url})"
+            img_md="${img_md}![${f}](${asset_url})"$'\n\n'
           else
-            echo "Screenshot upload failed: ${upload_json}" >&2
+            echo "Screenshot upload failed for ${f}: ${upload_json}" >&2
+            upload_failed=1
           fi
-        fi
+        done
         body_file=$(mktemp)
         {
           echo '<!-- jupyterlab-bringup-screenshot -->'
@@ -80,9 +88,9 @@ jobs:
           echo "Image: \`ae-editor-base:${IMAGE_VER:-unknown}\` · JupyterLab \`${JUPYTERLAB_VER:-unknown}\` · [run](${RUN_URL})"
           echo
           if [ -n "$img_md" ]; then
-            echo "$img_md"
-          elif [ -f test_screenshot.png ]; then
-            echo "Screenshot captured but could not attach inline. See the [run artifact](${RUN_URL})."
+            printf '%s' "$img_md"
+          elif [ ${#screenshots[@]} -gt 0 ]; then
+            echo "Screenshots captured but could not attach inline. See the [run artifact](${RUN_URL})."
           else
             echo 'Bringup **failed** before a screenshot was captured.'
           fi
@@ -94,7 +102,7 @@ jobs:
         for id in $old_ids; do
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" || true
         done
-        if [ -f test_screenshot.png ] && [ -z "$img_md" ]; then
+        if [ ${#screenshots[@]} -gt 0 ] && [ "$upload_failed" -eq 1 ]; then
           exit 1
         fi
 
@@ -116,7 +124,6 @@ jobs:
         export PATH="$HOME/.pixi/bin:$PATH"
         pixi global install pixi-pack
         bash download_jupyterlab.sh
-        tar cfj jupyter-blobs.tar.bz2 --exclude='.pixi-pack-cache' downloads
         mkdir -p staging
         git archive --format=tar --prefix=Jupyter_Installer/ HEAD | tar -x -C staging
         rm -rf staging/Jupyter_Installer/.github
@@ -149,10 +156,15 @@ jobs:
           suffixes+=("-dev")
         fi
         for suffix in "${suffixes[@]}"; do
-          for fname in jupyter-installer.tar.bz2 jupyter-blobs.tar.bz2; do
-            dname="$(echo "$fname" | sed -E "s@.tar.bz2\$@${suffix}.tar.bz2@")"
-            echo "$fname -> s3://airgap-svc/misc/$dname"
-            aws s3 cp --quiet "$fname" "s3://airgap-svc/misc/$dname" --acl public-read --region "$AWS_DEFAULT_REGION"
+          echo "jupyter-installer.tar.bz2 -> s3://airgap-svc/misc/jupyter-installer${suffix}.tar.bz2"
+          aws s3 cp --quiet jupyter-installer.tar.bz2 \
+            "s3://airgap-svc/misc/jupyter-installer${suffix}.tar.bz2" \
+            --acl public-read --region "$AWS_DEFAULT_REGION"
+          for plat in linux-64 linux-aarch64; do
+            echo "downloads/jupyter-${plat}.tar -> s3://airgap-svc/misc/jupyter-${plat}${suffix}.tar"
+            aws s3 cp --quiet "downloads/jupyter-${plat}.tar" \
+              "s3://airgap-svc/misc/jupyter-${plat}${suffix}.tar" \
+              --acl public-read --region "$AWS_DEFAULT_REGION"
           done
         done
         if [ -n "$create_tag" ]; then

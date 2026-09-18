@@ -121,6 +121,9 @@ if [ -z "$timestamp" ]; then
 	exit 1
 fi
 
+# Let jupyter settle a bit. Arbitrary but sufficient for our purposes.
+sleep 5
+
 capture_attempt=$(node capture.mjs "$expected_version" 2>&1 && echo "@@success@@" || :)
 
 docker logs "$container_name" --since="$timestamp" | sed 1d
