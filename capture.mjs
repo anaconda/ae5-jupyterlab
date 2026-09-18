@@ -53,7 +53,7 @@ try {
   await waitForText('Click to prepare' );
   await screenshot();
   await clickByText('Click to prepare');
-  await waitForText('"default" prepared successfully.', 45000 );
+  await waitForText('"default" prepared successfully.', 120000 );
   await screenshot();
   await clickByText('route_chord.', true);
   await clickByRole('menuitem', 'Run');
@@ -65,7 +65,7 @@ try {
   await clickByText('Close Tab');
   await clickByText('Convert To Pixi');
   await clickByRole('button', 'Convert');
-  await waitForText('"default" prepared successfully.', 45000 );
+  await waitForText('"default" prepared successfully.', 120000 );
   await screenshot();
   await clickByText('route_chord2.', true);
   await clickByRole('menuitem', 'Run');

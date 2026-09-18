@@ -49,7 +49,7 @@ jobs:
       if: always() && github.event_name == 'pull_request'
       env:
         GH_TOKEN: ${{ github.token }}
-        UPLOAD_TOKEN: ${{ secrets.GITHUB_PLATFORM_TOKEN }}
+        UPLOAD_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO_ID: ${{ github.repository_id }}
         IMAGE_VER: ${{ steps.bringup.outputs.image_ver }}
