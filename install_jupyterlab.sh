@@ -21,16 +21,16 @@ case $(uname -m) in
 esac
 
 PACK=
-for candidate in "$PWD/downloads/jupyterlab-${PLAT}.tar" \
-                 "$SCRIPTDIR/downloads/jupyterlab-${PLAT}.tar"; do
+for candidate in "$PWD/downloads/jupyter-${PLAT}.tar" \
+                 "$SCRIPTDIR/downloads/jupyter-${PLAT}.tar"; do
     if [ -f "$candidate" ]; then
         PACK=$candidate
         break
     fi
 done
 if [ -z "$PACK" ]; then
-    echo "ERROR: missing downloads/jupyterlab-${PLAT}.tar"
-    echo "(Have you unpacked jupyter-blobs.tar.bz2, or run download_jupyterlab.sh?)"
+    echo "ERROR: missing downloads/jupyter-${PLAT}.tar"
+    echo "(Have you downloaded jupyter-${PLAT}.tar, or run download_jupyterlab.sh?)"
     exit 1
 fi
 

@@ -21,7 +21,8 @@ while `/tools` is writable.
 The latest files are always at:
 
 - Installer project: [jupyter-installer.tar.bz2](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-installer.tar.bz2)
-- Packed environments (linux-64 and linux-aarch64): [jupyter-blobs.tar.bz2](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-blobs.tar.bz2)
+- Packed environment (linux-64): [jupyter-linux-64.tar](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-linux-64.tar)
+- Packed environment (linux-aarch64): [jupyter-linux-aarch64.tar](https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-linux-aarch64.tar)
 
 Untagged URLs track `master`. Dated and `-latest` / `-dev` suffixes
 follow the same convention as the VSCode and RStudio tool repos.
@@ -34,22 +35,27 @@ has write access to `/tools`.
 ### Step 1. Install JupyterLab onto `/tools/jupyter`
 
 1. Start a session on any project.
-2. Bring the installer and the blobs into the project. If the cluster
-   can reach the internet:
+2. Bring the installer and the pack for this machine's architecture
+   into the project. If the cluster can reach the internet:
 
    ```
    curl -OL https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-installer.tar.bz2
-   curl -OL https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-blobs.tar.bz2
+   case $(uname -m) in
+     arm64|aarch64) plat=linux-aarch64 ;;
+     *)             plat=linux-64 ;;
+   esac
+   curl -OL "https://airgap.svc.anaconda.com.s3.amazonaws.com/misc/jupyter-${plat}.tar"
    ```
 
    Otherwise download them outside the cluster and upload them into
    the session.
 
-3. Unpack both archives and install:
+3. Unpack the installer, place the pack in `downloads/`, and install:
 
    ```
    tar xfj jupyter-installer.tar.bz2
-   tar xfj jupyter-blobs.tar.bz2 -C Jupyter_Installer
+   mkdir -p Jupyter_Installer/downloads
+   mv jupyter-linux-*.tar Jupyter_Installer/downloads/
    cd Jupyter_Installer
    PREFIX=/tools/jupyter bash install_jupyterlab.sh
    ```

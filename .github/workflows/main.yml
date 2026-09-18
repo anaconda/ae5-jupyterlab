@@ -124,7 +124,6 @@ jobs:
         export PATH="$HOME/.pixi/bin:$PATH"
         pixi global install pixi-pack
         bash download_jupyterlab.sh
-        tar cfj jupyter-blobs.tar.bz2 --exclude='.pixi-pack-cache' downloads
         mkdir -p staging
         git archive --format=tar --prefix=Jupyter_Installer/ HEAD | tar -x -C staging
         rm -rf staging/Jupyter_Installer/.github
@@ -157,10 +156,15 @@ jobs:
           suffixes+=("-dev")
         fi
         for suffix in "${suffixes[@]}"; do
-          for fname in jupyter-installer.tar.bz2 jupyter-blobs.tar.bz2; do
-            dname="$(echo "$fname" | sed -E "s@.tar.bz2\$@${suffix}.tar.bz2@")"
-            echo "$fname -> s3://airgap-svc/misc/$dname"
-            aws s3 cp --quiet "$fname" "s3://airgap-svc/misc/$dname" --acl public-read --region "$AWS_DEFAULT_REGION"
+          echo "jupyter-installer.tar.bz2 -> s3://airgap-svc/misc/jupyter-installer${suffix}.tar.bz2"
+          aws s3 cp --quiet jupyter-installer.tar.bz2 \
+            "s3://airgap-svc/misc/jupyter-installer${suffix}.tar.bz2" \
+            --acl public-read --region "$AWS_DEFAULT_REGION"
+          for plat in linux-64 linux-aarch64; do
+            echo "downloads/jupyter-${plat}.tar -> s3://airgap-svc/misc/jupyter-${plat}${suffix}.tar"
+            aws s3 cp --quiet "downloads/jupyter-${plat}.tar" \
+              "s3://airgap-svc/misc/jupyter-${plat}${suffix}.tar" \
+              --acl public-read --region "$AWS_DEFAULT_REGION"
           done
         done
         if [ -n "$create_tag" ]; then
