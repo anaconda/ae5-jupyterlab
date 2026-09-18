@@ -1,5 +1,5 @@
 .playwright-cli/
 downloads/
 node_modules/
-test_screenshot.png
+test_screenshot*.png
 .DS_Store

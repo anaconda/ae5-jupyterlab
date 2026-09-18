@@ -114,7 +114,8 @@ for dst in "$PREFIX"/lib/*/site-packages/*/static/custom/; do
 done
 
 need_rebuild=no
-if jupyter labextension list 2>&1 | grep -q '^Build recommended'; then
+labext_list=$(jupyter labextension list 2>&1 || true)
+if printf '%s\n' "$labext_list" | grep -q '^Build recommended'; then
     echo "Rebuild required due to extensions"
     need_rebuild=yes
 fi
@@ -127,17 +128,19 @@ if [ "$need_rebuild" = yes ]; then
     fi
     export PATH=/tmp/nodejs/bin:$PATH
     cmd jupyter lab build
+    labext_list=$(jupyter labextension list 2>&1 || true)
 fi
 
 echo "- Sanity check"
-cmd jupyter lab extension list
-cmd jupyter server extension list
+printf '%s\n' "$labext_list" | sed 's@^@| @'
+server_list=$(jupyter server extension list 2>&1 || true)
+printf '%s\n' "$server_list" | sed 's@^@| @'
 error=no
-if ! jupyter lab extension list 2>&1 | grep -q 'anaconda.project.launcher.*OK'; then
+if ! printf '%s\n' "$labext_list" | grep -q 'anaconda.project.launcher.*OK'; then
     error=yes
     echo "ERROR: anaconda-project-launcher front end is not enabled"
 fi
-if ! jupyter server extension list 2>&1 | grep 'anaconda.project.launcher.*OK'; then
+if ! printf '%s\n' "$server_list" | grep -q 'anaconda.project.launcher.*OK'; then
     error=yes
     echo "ERROR: anaconda-project-launcher back end is not enabled"
 fi
