@@ -64,6 +64,8 @@ try {
   await clickByRole('menuitem', 'File');
   await clickByText('Close Tab');
   await clickByText('Convert To Pixi');
+  await waitForText('This operation will create');
+  await screenshot();
   await clickByRole('button', 'Convert');
   await waitForText('"default" prepared successfully.', 120000 );
   await screenshot();
